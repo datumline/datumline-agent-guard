@@ -55,6 +55,22 @@ if receipt["verdict"] != "VERIFIED":
     raise SystemExit(receipt["verdict"])
 ```
 
+## LangChain
+
+```bash
+pip install "datumline-agent-guard[langchain]"
+```
+
+```python
+from datumline_agent_guard.langchain_tool import AgentGuardTool
+
+tool = AgentGuardTool()  # name: agent_guard_verify
+tool.invoke({"manifest": {"claimed_status": "COMPLETED", "artifacts": [{"type": "file", "path": "out/report.md"}]}})
+# -> JSON receipt; anything other than "verdict": "VERIFIED" means not done
+```
+
+Give it to an agent as a tool, or call it yourself before accepting the agent's "done". It also takes `manifest_path` instead of `manifest`. It passes LangChain's standard tool tests (`langchain-tests`). Requires Python 3.10+; the core package needs only 3.9 and has no dependencies.
+
 ## Related
 
 The same verifier ships inside the free, MIT-licensed [Receipted Operator](https://github.com/datumline/receipted-operator) Claude Code plugin, which adds a receipt ledger, truthful statuses and a hook that refuses unreceipted "done". Datumline also publishes paid method kits at [datumlinehq.gumroad.com](https://datumlinehq.gumroad.com).

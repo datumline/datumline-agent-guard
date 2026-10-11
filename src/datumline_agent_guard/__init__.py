@@ -7,5 +7,5 @@
 from .core import DONE_WORDS, verify, verify_file
 
 __all__ = ["DONE_WORDS", "verify", "verify_file", "VERDICTS", "__version__"]
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 VERDICTS = ("VERIFIED", "FAILED", "FALSE_DONE", "UNVERIFIABLE")

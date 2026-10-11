@@ -1,0 +1,67 @@
+name: "Datumline Agent Guard"
+description: "Fail the build when an AI agent claims a job is done but the files it says it produced are missing (FALSE_DONE)."
+author: "Datumline"
+branding:
+  icon: "shield"
+  color: "gray-dark"
+
+inputs:
+  manifest:
+    description: "Path to the manifest JSON listing what the agent claims to have produced."
+    required: true
+  fail-on:
+    description: "Which verdicts fail the step: 'not-verified' (default: FAILED, FALSE_DONE, UNVERIFIABLE) or 'false-done' (only FALSE_DONE)."
+    required: false
+    default: "not-verified"
+
+outputs:
+  verdict:
+    description: "VERIFIED, FAILED, FALSE_DONE or UNVERIFIABLE."
+    value: ${{ steps.guard.outputs.verdict }}
+  receipt:
+    description: "Path to the JSON receipt written by this step."
+    value: ${{ steps.guard.outputs.receipt }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install agent-guard from this action's source
+      shell: bash
+      run: python3 -m pip install --quiet --disable-pip-version-check "${{ github.action_path }}"
+    - name: Verify the completion claim
+      id: guard
+      shell: bash
+      env:
+        MANIFEST: ${{ inputs.manifest }}
+        FAIL_ON: ${{ inputs.fail-on }}
+      run: |
+        RECEIPT="${RUNNER_TEMP}/agent-guard-receipt.json"
+        set +e
+        python3 -m datumline_agent_guard "$MANIFEST" --json > "$RECEIPT"
+        CODE=$?
+        set -e
+        if [ "$CODE" -eq 2 ]; then
+          echo "::error::agent-guard could not read the manifest: $MANIFEST"
+          exit 2
+        fi
+        VERDICT=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['verdict'])" "$RECEIPT")
+        echo "verdict=$VERDICT" >> "$GITHUB_OUTPUT"
+        echo "receipt=$RECEIPT" >> "$GITHUB_OUTPUT"
+        python3 - "$RECEIPT" >> "$GITHUB_STEP_SUMMARY" <<'PY'
+        import json, sys
+        r = json.load(open(sys.argv[1]))
+        print(f"### Agent Guard: {r['verdict']}")
+        print(f"Job `{r.get('job')}`, claimed `{r.get('claimed_status') or 'n/a'}`\n")
+        for x in r.get("results", []):
+            print(f"- **{x['state']}** {x['detail']}")
+        if r.get("reason"):
+            print(f"\n{r['reason']}")
+        PY
+        python3 -m datumline_agent_guard "$MANIFEST" || true
+        if [ "$VERDICT" = "VERIFIED" ]; then exit 0; fi
+        if [ "$FAIL_ON" = "false-done" ] && [ "$VERDICT" != "FALSE_DONE" ]; then
+          echo "::warning::agent-guard verdict $VERDICT (fail-on: false-done)"
+          exit 0
+        fi
+        echo "::error::agent-guard verdict $VERDICT: the agent's completion claim did not check out"
+        exit 1

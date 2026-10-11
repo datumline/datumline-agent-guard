@@ -55,6 +55,35 @@ if receipt["verdict"] != "VERIFIED":
     raise SystemExit(receipt["verdict"])
 ```
 
+## GitHub Action
+
+Fail a workflow when an agent's "done" doesn't check out:
+
+```yaml
+- uses: datumline/datumline-agent-guard@v0.2.0
+  with:
+    manifest: agent-output/manifest.json   # what the agent claims it produced
+    # fail-on: false-done                  # only fail on FALSE_DONE (default: anything but VERIFIED)
+```
+
+The step installs this package from the action's own source (no network fetch), writes the receipt to the job summary, sets the `verdict` and `receipt` outputs, and exits non-zero unless the verdict is `VERIFIED`. It needs `python3` 3.9+ on the runner, which GitHub-hosted runners have.
+
+## MCP server
+
+The same verifier as an MCP tool, `verify_completion_claim`, for Claude, ChatGPT, Copilot, Cursor or any MCP client. Standard library only, stdio transport.
+
+```json
+{
+  "mcpServers": {
+    "agent-guard": { "command": "uvx", "args": ["datumline-agent-guard"] }
+  }
+}
+```
+
+Or `pip install datumline-agent-guard` and run `datumline-agent-guard` (alias `agent-guard-mcp`). The tool takes `manifest` (object) or `manifest_path` (string) and returns the receipt; anything other than `"verdict": "VERIFIED"` means not done. It reads the files and fetches the URLs the manifest names, and sends nothing anywhere else.
+
+<!-- mcp-name: io.github.datumline/agent-guard -->
+
 ## LangChain
 
 ```bash

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.datumline/agent-guard",
+  "title": "Datumline Agent Guard",
+  "description": "Checks an AI agent's 'done' against the files and URLs it claims. Missing = FALSE_DONE.",
+  "repository": {
+    "url": "https://github.com/datumline/datumline-agent-guard",
+    "source": "github"
+  },
+  "version": "0.2.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "datumline-agent-guard",
+      "version": "0.2.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

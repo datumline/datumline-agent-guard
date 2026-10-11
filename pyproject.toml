@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "datumline-agent-guard"
-version = "0.1.0"
-description = "Independent verifier for AI agent completion claims: VERIFIED, FAILED, FALSE_DONE or UNVERIFIABLE."
+version = "0.2.0"
+description = "Independent verifier for AI agent completion claims (VERIFIED, FAILED, FALSE_DONE, UNVERIFIABLE): CLI, Python library, MCP server, GitHub Action and LangChain tool."
 readme = "README.md"
 license = {text = "MIT"}
 authors = [{name = "Datumline LLC"}]
 requires-python = ">=3.9"
 dependencies = []
-keywords = ["agents", "verification", "governance", "audit", "llm"]
+keywords = ["agents", "verification", "governance", "audit", "llm", "mcp", "github-action"]
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
@@ -26,6 +26,8 @@ Repository = "https://github.com/datumline/datumline-agent-guard"
 
 [project.scripts]
 agent-guard = "datumline_agent_guard.cli:main"
+datumline-agent-guard = "datumline_agent_guard.mcp_server:main"
+agent-guard-mcp = "datumline_agent_guard.mcp_server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

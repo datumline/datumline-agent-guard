@@ -17,6 +17,17 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install .
       - run: python -m unittest discover -s tests -v
+      - name: Versions agree (pyproject, package, server.json)
+        run: |
+          python - <<'PY'
+          import json, re
+          v = re.search(r'^version = "(.+)"', open('pyproject.toml').read(), re.M).group(1)
+          import datumline_agent_guard as m
+          s = json.load(open('server.json'))
+          assert m.__version__ == v == s['version'] == s['packages'][0]['version'], (m.__version__, v, s['version'])
+          assert 'mcp-name: ' + s['name'] in open('README.md').read()
+          print('versions agree', v)
+          PY
       - name: LangChain extra + LangChain standard tool tests
         if: matrix.python-version != '3.9'
         run: |
@@ -49,3 +60,33 @@ jobs:
           name: dist
           path: dist/
       - uses: pypa/gh-action-pypi-publish@release/v1
+
+  mcp-registry:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait until the release is visible on PyPI
+        run: |
+          V=$(python3 -c "import tomllib;print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          for i in $(seq 1 30); do
+            curl -sf "https://pypi.org/pypi/datumline-agent-guard/$V/json" >/dev/null && exit 0
+            sleep 20
+          done
+          echo "PyPI never showed $V" && exit 1
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+      - name: Authenticate to MCP Registry (GitHub OIDC)
+        run: ./mcp-publisher login github-oidc
+      - name: Publish server.json
+        run: ./mcp-publisher publish
+      - name: Done-test, registry returns this version
+        run: |
+          V=$(python3 -c "import json;print(json.load(open('server.json'))['version'])")
+          sleep 10
+          curl -sf "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.datumline/agent-guard" | tee reg.json
+          python3 -c "import json,sys;d=json.load(open('reg.json'));vs=[s.get('server',s).get('version') for s in d.get('servers',[])];print(vs);sys.exit(0 if '$V' in vs else 1)"

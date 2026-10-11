@@ -84,7 +84,7 @@ def check_json(a):
 def check_url(a):
     url = a["url"]
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "datumline-agent-guard/0.1.0"})
+        req = urllib.request.Request(url, headers={"User-Agent": "datumline-agent-guard/0.2.0"})
         with urllib.request.urlopen(req, timeout=20) as r:
             body = r.read().decode("utf-8", errors="replace")
             code = r.getcode()

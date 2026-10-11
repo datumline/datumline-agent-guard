@@ -1,0 +1,34 @@
+name: action-selftest
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Manifests for both cases
+        run: |
+          mkdir -p st/out && echo "## Findings" > st/out/report.md
+          echo '{"job":"ST-PASS","claimed_status":"COMPLETED","artifacts":[{"type":"file","path":"st/out/report.md","must_contain":["## Findings"]}]}' > st/pass.json
+          echo '{"job":"ST-FALSE-DONE","claimed_status":"COMPLETED","artifacts":[{"type":"file","path":"st/out/missing.md"}]}' > st/false_done.json
+      - name: A true claim passes
+        id: pass
+        uses: ./
+        with:
+          manifest: st/pass.json
+      - name: A false claim must fail the step
+        id: falsedone
+        continue-on-error: true
+        uses: ./
+        with:
+          manifest: st/false_done.json
+      - name: Done-test, the guard caught the false claim
+        run: |
+          test "${{ steps.pass.outputs.verdict }}" = "VERIFIED"
+          test "${{ steps.falsedone.outcome }}" = "failure"
+          test "${{ steps.falsedone.outputs.verdict }}" = "FALSE_DONE"
+          echo "self-test passed: VERIFIED passed, FALSE_DONE failed the step"
